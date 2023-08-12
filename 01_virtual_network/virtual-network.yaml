@@ -46,7 +46,7 @@ Resources:
       CidrBlock: 10.0.0.0/20
       Tags:
         - Key: Name
-          Value: !Sub ${SystemName}-public-subnet-${AvailabilityZone}
+          Value: !Sub ${SystemName}-public-subnet
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -54,7 +54,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${SystemName}-public-rtb-${AvailabilityZone}
+          Value: !Sub ${SystemName}-public-rtb
 
   PublicSubnetRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -80,7 +80,7 @@ Resources:
       CidrBlock: 10.0.16.0/20
       Tags:
         - Key: Name
-          Value: !Sub ${SystemName}-private-subnet-${AvailabilityZone}
+          Value: !Sub ${SystemName}-private-subnet
 
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
@@ -88,7 +88,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${SystemName}-private-rtb-${AvailabilityZone}
+          Value: !Sub ${SystemName}-private-rtb
 
   PrivateSubnetRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -112,7 +112,7 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Sub ${SystemName}-ngw-eip-${AvailabilityZone}
+          Value: !Sub ${SystemName}-ngw-eip
 
   NatGateway:
     Type: AWS::EC2::NatGateway
@@ -121,7 +121,7 @@ Resources:
       AllocationId: !GetAtt NatGatewayEIP.AllocationId
       Tags:
         - Key: Name
-          Value: !Sub ${SystemName}-ngw-${AvailabilityZone}
+          Value: !Sub ${SystemName}-ngw
   
   #-----------------------------------------------------------------------------
   # Endpoint
@@ -159,14 +159,14 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Sub ${SystemName}-bastion-eip-${AvailabilityZone}
+          Value: !Sub ${SystemName}-bastion-eip
 
   # Key can be found in AWS console: Systems Manager -> Parameter Store
   BastionKeyPair:
     Type: AWS::EC2::KeyPair
     Description: KeyPair for bastion server
     Properties:
-      KeyName: !Sub ${SystemName}-bastion-keypair-${AvailabilityZone}
+      KeyName: !Sub ${SystemName}-bastion-keypair
 
   BastionInstance:
     Type: AWS::EC2::Instance
@@ -180,7 +180,7 @@ Resources:
       SubnetId: !Ref PublicSubnet
       Tags:
         - Key: Name
-          Value: !Sub ${SystemName}-bastion-${AvailabilityZone}
+          Value: !Sub ${SystemName}-bastion
 
   BastionEIPAssociation:
     Type: AWS::EC2::EIPAssociation
@@ -204,4 +204,4 @@ Outputs:
   PrivateSubnet:
     Value: !Ref PrivateSubnet
     Export:
-      Name: !Sub ${SystemName}-private-subnet-${AvailabilityZone}
+      Name: !Sub ${SystemName}-private-subnet

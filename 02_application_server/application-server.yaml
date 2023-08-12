@@ -6,9 +6,6 @@ Parameters:
   SystemName:
     Description: System Name
     Type: String
-  AvailabilityZone:
-    Description: Availability Zone
-    Type: AWS::EC2::AvailabilityZone::Name
 
 Resources:
   #-----------------------------------------------------------------------------
@@ -33,7 +30,7 @@ Resources:
     Type: AWS::EC2::KeyPair
     Description: KeyPair for an application server
     Properties:
-      KeyName: !Sub ${SystemName}-application-keypair-${AvailabilityZone}
+      KeyName: !Sub ${SystemName}-application-keypair
 
   ApplicationInstance:
     Type: AWS::EC2::Instance
@@ -47,7 +44,7 @@ Resources:
       KeyName: !Ref ApplicationKeyPair
       SecurityGroupIds:
         - !Ref ApplicationSecurityGroup
-      SubnetId: {Fn::ImportValue: !Sub '${SystemName}-private-subnet-${AvailabilityZone}'}
+      SubnetId: {Fn::ImportValue: !Sub '${SystemName}-private-subnet'}
       IamInstanceProfile:
         !Ref ApplicationInstanceProfile
       UserData:        # Log can be found in /var/log/cloud-init-output.log
@@ -68,14 +65,14 @@ Resources:
 
             # Test code
             echo ${SystemName} >> /home/ec2-user/test.txt
-            echo ${AvailabilityZone} >> /home/ec2-user/test.txt
+            echo ${ApplicationKeyPair} >> /home/ec2-user/test.txt
           - {
             SystemName: !Ref SystemName,
-            AvailabilityZone: !Ref AvailabilityZone
+            ApplicationKeyPair: !Ref ApplicationKeyPair
           }
       Tags:
         - Key: Name
-          Value: !Sub ${SystemName}-application-${AvailabilityZone}
+          Value: !Sub ${SystemName}-application
 
   #-----------------------------------------------------------------------------
   # IAM Role for Application server

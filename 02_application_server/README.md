@@ -4,6 +4,12 @@
 
 ![](./application-server.drawio.png)
 
+- Application Server
+    - AWS::EC2::SecurityGroup
+    - AWS::EC2::KeyPair
+    - AWS::EC2::Instance
+    - AWS::IAM::Role
+
 ## How to run
 
 [01_virtual_network](../01_virtual_network) needs to be created beforehand
@@ -11,7 +17,6 @@
 ```sh
 Region=ap-northeast-1
 SystemName=sample
-AvailabilityZone=ap-northeast-1a
 
 aws cloudformation deploy \
 --region "${Region}" \
@@ -19,8 +24,7 @@ aws cloudformation deploy \
 --template-file ./application-server.yaml \
 --capabilities CAPABILITY_NAMED_IAM \
 --parameter-overrides \
-SystemName="${SystemName}" \
-AvailabilityZone="${AvailabilityZone}"
+SystemName="${SystemName}"
 ```
 
 ## How to connect to an application server via a bastion server
@@ -44,7 +48,7 @@ host i-* mi-*
     ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
 ```
 
-```
+```sh
 AvailabilityZone=ap-northeast-1a
 AWS_BASTION_ID=i-ooo
 AWS_APP_ID=i-ooo 
