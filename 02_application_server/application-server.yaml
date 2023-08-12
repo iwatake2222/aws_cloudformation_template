@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create an application server
+
+Parameters:
+  SystemName:
+    Description: System Name
+    Type: String
+  AvailabilityZone:
+    Description: Availability Zone
+    Type: AWS::EC2::AvailabilityZone::Name
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # Application server
+  #-----------------------------------------------------------------------------
+  ApplicationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Security Group for an application server'
+      VpcId: {Fn::ImportValue: !Sub '${SystemName}-vpc'}
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: {Fn::ImportValue: !Sub '${SystemName}-bastion-sg'}
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-application-sg
+
+  # Key can be found in AWS console: Systems Manager -> Parameter Store
+  ApplicationKeyPair:
+    Type: AWS::EC2::KeyPair
+    Description: KeyPair for an application server
+    Properties:
+      KeyName: !Sub ${SystemName}-application-keypair-${AvailabilityZone}
+
+  ApplicationInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-08c84d37db8aafe00  # Amazon Linux 2023 AMI
+      InstanceType: t2.micro
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 64
+      KeyName: !Ref ApplicationKeyPair
+      SecurityGroupIds:
+        - !Ref ApplicationSecurityGroup
+      SubnetId: {Fn::ImportValue: !Sub '${SystemName}-private-subnet-${AvailabilityZone}'}
+      IamInstanceProfile:
+        !Ref ApplicationInstanceProfile
+      UserData:        # Log can be found in /var/log/cloud-init-output.log
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            export HOME=/root    # it seems HOME is not set
+            sudo yum update -y
+
+            # Install nano
+            sudo yum -y install nano
+
+            # Install Docker
+            sudo yum -y install docker
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            sudo usermod -a -G docker ec2-user
+
+            # Test code
+            echo ${SystemName} >> /home/ec2-user/test.txt
+            echo ${AvailabilityZone} >> /home/ec2-user/test.txt
+          - {
+            SystemName: !Ref SystemName,
+            AvailabilityZone: !Ref AvailabilityZone
+          }
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-application-${AvailabilityZone}
+
+  #-----------------------------------------------------------------------------
+  # IAM Role for Application server
+  #-----------------------------------------------------------------------------
+  AppliactionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${SystemName}-application-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore   # To connect to an instance using Session Manager
+      Policies:
+        - PolicyName: !Sub ${SystemName}-application-access-s3-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource: '*'
+
+  ApplicationInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: 
+        - !Ref AppliactionRole
