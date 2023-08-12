@@ -1,0 +1,207 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create a virtual network
+
+Parameters:
+  SystemName:
+    Description: System Name
+    Type: String
+  AvailabilityZone:
+    Description: Availability Zone
+    Type: AWS::EC2::AvailabilityZone::Name
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # VPC
+  #-----------------------------------------------------------------------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  #-----------------------------------------------------------------------------
+  # Public Subnet
+  #-----------------------------------------------------------------------------
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/20
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-public-subnet-${AvailabilityZone}
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-public-rtb-${AvailabilityZone}
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetToInternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  #-----------------------------------------------------------------------------
+  # Private Subnet
+  #-----------------------------------------------------------------------------
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.16.0/20
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-private-subnet-${AvailabilityZone}
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-private-rtb-${AvailabilityZone}
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetToInternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  #-----------------------------------------------------------------------------
+  # Nat Gateway
+  #-----------------------------------------------------------------------------
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-ngw-eip-${AvailabilityZone}
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-ngw-${AvailabilityZone}
+  
+  #-----------------------------------------------------------------------------
+  # Endpoint
+  #-----------------------------------------------------------------------------
+  S3VPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      PrivateDnsEnabled: false
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+  #-----------------------------------------------------------------------------
+  # Bastion server
+  #-----------------------------------------------------------------------------
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Security Group for a bastion instance'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-bastion-sg
+
+  BastionEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-bastion-eip-${AvailabilityZone}
+
+  # Key can be found in AWS console: Systems Manager -> Parameter Store
+  BastionKeyPair:
+    Type: AWS::EC2::KeyPair
+    Description: KeyPair for bastion server
+    Properties:
+      KeyName: !Sub ${SystemName}-bastion-keypair-${AvailabilityZone}
+
+  BastionInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-08c84d37db8aafe00  # Amazon Linux 2023 AMI
+      InstanceType: t2.micro
+      KeyName: !Ref BastionKeyPair
+      SecurityGroupIds:
+        - !Ref BastionSecurityGroup
+        # - !GetAtt VPC.DefaultSecurityGroup
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-bastion-${AvailabilityZone}
+
+  BastionEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt BastionEIP.AllocationId
+      InstanceId: !Ref BastionInstance
+
+Outputs:
+  VPC:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${SystemName}-vpc
+  BastionSecurityGroup:
+    Value: !Ref BastionSecurityGroup
+    Export:
+      Name: !Sub ${SystemName}-bastion-sg
+  DefaultSecurityGroupId:
+    Value: !GetAtt VPC.DefaultSecurityGroup
+    Export:
+      Name: !Sub ${SystemName}-default-sg
+  PrivateSubnet:
+    Value: !Ref PrivateSubnet
+    Export:
+      Name: !Sub ${SystemName}-private-subnet-${AvailabilityZone}
