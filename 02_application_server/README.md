@@ -16,6 +16,7 @@
 
 ```sh
 Region=ap-northeast-1
+OrganizationName=iwatake2222
 SystemName=sample
 
 aws cloudformation deploy \
@@ -24,6 +25,7 @@ aws cloudformation deploy \
 --template-file ./application-server.yaml \
 --capabilities CAPABILITY_NAMED_IAM \
 --parameter-overrides \
+OrganizationName="${OrganizationName}" \
 SystemName="${SystemName}"
 ```
 
@@ -69,3 +71,15 @@ aws ec2-instance-connect send-ssh-public-key \
 #  or
 ssh aws_app
 ```
+
+
+## Test access to S3
+
+```sh
+OrganizationName=iwatake2222
+SystemName=sample
+dd if=/dev/zero of=dummy_file bs=1M count=100
+aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-02-bucket"
+aws s3 ls s3://"${OrganizationName}-${SystemName}-02-bucket"
+```
+

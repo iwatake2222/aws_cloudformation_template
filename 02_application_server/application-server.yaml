@@ -3,6 +3,9 @@ Description: |
   Create an application server
 
 Parameters:
+  OrganizationName:
+    Description: Organization Name
+    Type: String
   SystemName:
     Description: System Name
     Type: String
@@ -104,9 +107,23 @@ Resources:
                   - s3:DeleteObject
                   - s3:ListBucket
                 Resource: '*'
+                # Resource:
+                #   - !Sub arn:${AWS::Partition}:s3:::${S3Bucket}
+                #   - !Sub arn:${AWS::Partition}:s3:::${S3Bucket}/*
 
   ApplicationInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles: 
         - !Ref AppliactionRole
+
+  #-----------------------------------------------------------------------------
+  # S3 bucket
+  #-----------------------------------------------------------------------------
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${OrganizationName}-${SystemName}-02-bucket
+      Tags:
+        - Key: Name
+          Value: !Sub ${OrganizationName}-${SystemName}-02-bucket

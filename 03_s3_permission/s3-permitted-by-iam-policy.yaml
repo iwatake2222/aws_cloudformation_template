@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create an S3 bucket
+
+Parameters:
+  OrganizationName:
+    Description: Organization Name
+    Type: String
+  SystemName:
+    Description: System Name
+    Type: String
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # S3 bucket
+  #-----------------------------------------------------------------------------
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${OrganizationName}-${SystemName}-03-b-bucket
+      Tags:
+        - Key: Name
+          Value: !Sub ${OrganizationName}-${SystemName}-03-b-bucket
+      LifecycleConfiguration:
+        Rules:
+          - Id: IntelligentTierRule
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 0
+                StorageClass: INTELLIGENT_TIERING
+      IntelligentTieringConfigurations:
+        - Id: DeepArchiveConfig
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 180
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 365
+
+  #-----------------------------------------------------------------------------
+  # IAM Policy to access S3 Bucket
+  #-----------------------------------------------------------------------------
+  S3AccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub ${SystemName}-s3-access-03-b-policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - s3:GetObject
+              - s3:PutObject
+              - s3:ListBucket
+              - s3:DeleteObject
+              - s3:GetBucketLocation
+            Resource: 
+              - !Sub arn:aws:s3:::${S3Bucket}
+              - !Sub arn:aws:s3:::${S3Bucket}/*
+
+  # S3AccessRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     RoleName: !Sub ${SystemName}-s3-access-03-b-role
+  #     AssumeRolePolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Effect: "Allow"
+  #           Principal:
+  #             Service:
+  #               - "ec2.amazonaws.com"
+  #           Action:
+  #             - "sts:AssumeRole"
+  #     ManagedPolicyArns:
+  #       - !Ref S3AccessPolicy
+
+  # S3AccessInstanceProfile:
+  #   Type: AWS::IAM::InstanceProfile
+  #   Properties:
+  #     Roles: 
+  #       - !Ref S3AccessRole
