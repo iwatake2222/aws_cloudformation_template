@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create a lambda function triggered by S3 upload via Event Bridge
+
+Parameters:
+  OrganizationName:
+    Description: Organization Name
+    Type: String
+  SystemName:
+    Description: System Name
+    Type: String
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # Lambda Function
+  #-----------------------------------------------------------------------------
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${SystemName}-lambda-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${SystemName}-lambda
+      Runtime: python3.10
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+            VarLambdaRole: !Ref LambdaRole
+            VarSystemName: !Sub ${SystemName}
+      Code:
+        ZipFile: |
+          import os
+          def handler(event, context):
+            print('Lambda is called!!')
+            print('event: ', event)
+            print(os.environ['VarLambdaRole'])
+            print(os.environ['VarSystemName'])
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt S3LambdaEventsRule.Arn
+
+  S3LambdaEventsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.s3
+        detail:
+          reason:
+            - CopyObject
+            - PutObject
+            - CompleteMultipartUpload
+          bucket:
+            name:
+              - !Ref S3Bucket
+          # object:
+          #   key:
+          #     - suffix: .jpg
+      Targets:
+        - Arn: !GetAtt LambdaFunction.Arn
+          Id: LambdaFunctionTarget
+
+  #-----------------------------------------------------------------------------
+  # S3 bucket
+  #-----------------------------------------------------------------------------
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${OrganizationName}-${SystemName}-source-bucket
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${OrganizationName}-${SystemName}-source-bucket
