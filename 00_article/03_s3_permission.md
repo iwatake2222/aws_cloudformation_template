@@ -123,9 +123,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub ${OrganizationName}-${SystemName}-03-a-bucket
-      Tags:
-        - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-03-a-bucket
       LifecycleConfiguration:
         Rules:
           - Id: IntelligentTierRule
@@ -141,6 +138,9 @@ Resources:
               Days: 180
             - AccessTier: DEEP_ARCHIVE_ACCESS
               Days: 365
+      Tags:
+        - Key: Name
+          Value: !Sub ${OrganizationName}-${SystemName}-03-a-bucket
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -298,9 +298,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub ${OrganizationName}-${SystemName}-03-b-bucket
-      Tags:
-        - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-03-b-bucket
       LifecycleConfiguration:
         Rules:
           - Id: IntelligentTierRule
@@ -316,6 +313,9 @@ Resources:
               Days: 180
             - AccessTier: DEEP_ARCHIVE_ACCESS
               Days: 365
+      Tags:
+        - Key: Name
+          Value: !Sub ${OrganizationName}-${SystemName}-03-b-bucket
 
   #-----------------------------------------------------------------------------
   # IAM Policy to access S3 Bucket

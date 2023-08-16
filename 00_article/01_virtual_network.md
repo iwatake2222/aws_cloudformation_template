@@ -1,4 +1,4 @@
-AWS CloudFormation: 01 仮想ネットワークの構築
+AWS CloudFormation: 01. 仮想ネットワークの構築
 
 # 本記事について
 
@@ -78,7 +78,71 @@ curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64
 sudo dpkg -i session-manager-plugin.deb
 ```
 
-## テンプレート
+## 構築コマンド
+
+```sh
+Region=ap-northeast-1
+SystemName=sample
+AvailabilityZone=ap-northeast-1a
+
+aws cloudformation deploy \
+--region "${Region}" \
+--stack-name "${SystemName}"-virtual-network \
+--template-file ./virtual-network.yaml \
+--parameter-overrides \
+SystemName="${SystemName}" \
+AvailabilityZone="${AvailabilityZone}"
+```
+
+- アカウント内だユニークな名前になる `SystemName` とサブネットを構築する `AvailabilityZone` をパラメータとして渡します
+- リソース名はテンプレート内で付けています。本当は環境 (product/devなど) によって分けた方が良いです
+- 今回は `sample` という名前で作成します
+
+## 接続確認
+
+- EC2 Instance Connectによって踏み台サーバーに接続してみます
+- 以下のコマンドによって、IAM権限によってSSHキーを登録し、EC2にSSH接続できるようにします
+    - AWS_BASTION_IDは自分の環境に応じて置き換え
+    - AWS Console上で、EC2 -> インスタンス から、作成した踏み台サーバーの `インスタンス ID` を探してください
+
+```sh
+AvailabilityZone=ap-northeast-1a
+AWS_BASTION_ID=i-ooo
+
+aws ec2-instance-connect send-ssh-public-key \
+--instance-id "${AWS_BASTION_ID}" \
+--availability-zone "${AvailabilityZone}" \
+--instance-os-user ec2-user \
+--ssh-public-key file://~/.ssh/id_rsa.pub
+```
+
+- 以下のような結果が返ってきたらOKです
+
+```json
+{
+    "RequestId": "oooooooo-oooo-oooo-oooo-oooooooooooo",
+    "Success": true
+}
+```
+
+- 以下コマンドによってssh接続します
+    - IPアドレスは自分の環境に応じて置き換え
+    - AWS Console上で、EC2 -> インスタンス から、作成した踏み台サーバーの `パブリック IPv4 アドレス` を探してください
+
+```sh
+ssh ec2-user@ooo.ooo.ooo.ooo
+```
+
+- 以下のように踏み台サーバーにログインできればOKです
+
+```sh
+[ec2-user@ip-10-0-12-36 ~]$
+```
+
+
+# テンプレート
+
+- 構築コマンド実行時、以下のファイルを `virtual-network.yaml` として配置してください
 
 ```yaml:virtual-network.yaml
 AWSTemplateFormatVersion: 2010-09-09
@@ -290,72 +354,10 @@ Outputs:
       Name: !Sub ${SystemName}-private-subnet
 ```
 
-## 構築コマンド
+## 簡単な説明
+### RouteTableの設定
 
-```sh
-Region=ap-northeast-1
-SystemName=sample
-AvailabilityZone=ap-northeast-1a
-
-aws cloudformation deploy \
---region "${Region}" \
---stack-name "${SystemName}"-virtual-network \
---template-file ./virtual-network.yaml \
---parameter-overrides \
-SystemName="${SystemName}" \
-AvailabilityZone="${AvailabilityZone}"
-```
-
-- アカウント内だユニークな名前になる `SystemName` とサブネットを構築する `AvailabilityZone` をパラメータとして渡します
-- リソース名はテンプレート内で付けています。本当は環境 (env/devなど) によって分けた方が良いです
-- 今回は `sample` という名前で作成します
-
-## 接続確認
-
-- EC2 Instance Connectによって踏み台サーバーに接続してみます
-- 以下のコマンドによって、IAM権限によってSSHキーを登録し、EC2にSSH接続できるようにします
-    - AWS_BASTION_IDは自分の環境に応じて置き換え
-    - AWS Console上で、EC2 -> インスタンス から、作成した踏み台サーバーの `インスタンス ID` を探してください
-
-```sh
-AvailabilityZone=ap-northeast-1a
-AWS_BASTION_ID=i-ooo
-
-aws ec2-instance-connect send-ssh-public-key \
---instance-id "${AWS_BASTION_ID}" \
---availability-zone "${AvailabilityZone}" \
---instance-os-user ec2-user \
---ssh-public-key file://~/.ssh/id_rsa.pub
-```
-
-- 以下のような結果が返ってきたらOKです
-
-```json
-{
-    "RequestId": "oooooooo-oooo-oooo-oooo-oooooooooooo",
-    "Success": true
-}
-```
-
-- 以下コマンドによってssh接続します
-    - IPアドレスは自分の環境に応じて置き換え
-    - AWS Console上で、EC2 -> インスタンス から、作成した踏み台サーバーの `パブリック IPv4 アドレス` を探してください
-
-```sh
-ssh ec2-user@ooo.ooo.ooo.ooo
-```
-
-- 以下のように踏み台サーバーにログインできればOKです
-
-```sh
-[ec2-user@ip-10-0-12-36 ~]$
-```
-
-# かんたんな説明
-
-## RouteTableの設定
-
-### PublicSubnet
+#### PublicSubnet
 
 ```yaml
   PublicSubnetToInternetRoute:
@@ -369,7 +371,7 @@ ssh ec2-user@ooo.ooo.ooo.ooo
 - デフォルトで、10.0.0.0/16 (同一VPC) 宛の通信はlocalに送られます
 - 上記によって、0.0.0.0/0 (その他) 宛の通信はInternetGatewayに送られます
 
-### PrivateSubnet
+#### PrivateSubnet
 
 ```yaml
   PrivateSubnetToInternetRoute:
@@ -394,9 +396,9 @@ ssh ec2-user@ooo.ooo.ooo.ooo
 - 上記によって、S3へのアクセスはVPCEndpointに送られます
 - 上記によって、0.0.0.0/0 (その他) 宛の通信はNatGatewayに送られます
 
-## 踏み台サーバーの設定
+### 踏み台サーバーの設定
 
-### セキュリティグループの設定
+#### セキュリティグループの設定
 
 ```yaml
   BastionSecurityGroup:
@@ -418,7 +420,7 @@ ssh ec2-user@ooo.ooo.ooo.ooo
 - インバウンドルールとして、ssh(port=22)のみ受け入れる設定をしています (アクセス元は0.0.0.0/0=any)
 - なお、自分でセキュリティグループを作成しないで、VPCのデフォルトセキュリティグループを使用することもできます
 
-### 固定IPの設定
+#### 固定IPの設定
 
 ```yaml
   BastionEIP:
@@ -433,7 +435,7 @@ ssh ec2-user@ooo.ooo.ooo.ooo
 - 上記によって、固定IPアドレスを設定しています
 - これによって、踏み台サーバーには常に固定のIPアドレスでアクセスできるようになります
 
-### キーペアの作成
+#### キーペアの作成
 
 ```yaml
   BastionKeyPair:
@@ -453,7 +455,7 @@ ssh ec2-user@ooo.ooo.ooo.ooo
         - インスタンスがVPCに接続していて、SSM用のRoleが割り当てられている必要がある
         - 今回は踏み台サーバー用にRoleを作成していないので、この方法は使わない
 
-### EC2インスタンスの作成
+#### EC2インスタンスの作成
 
 ```yaml
   BastionInstance:
