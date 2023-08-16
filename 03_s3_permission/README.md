@@ -16,7 +16,7 @@
 ```sh
 Region=ap-northeast-1
 OrganizationName=iwatake2222
-SystemName=sample
+SystemName=sample-03-a
 
 aws cloudformation deploy \
 --region "${Region}" \
@@ -26,7 +26,12 @@ aws cloudformation deploy \
 --parameter-overrides \
 OrganizationName="${OrganizationName}" \
 SystemName="${SystemName}"
+```
 
+```sh
+Region=ap-northeast-1
+OrganizationName=iwatake2222
+SystemName=sample-03-b
 
 aws cloudformation deploy \
 --region "${Region}" \
@@ -40,8 +45,6 @@ SystemName="${SystemName}"
 
 ```sh
 dd if=/dev/zero of=dummy_file bs=1M count=100
-aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-03-a-bucket"
-aws s3 ls s3://"${OrganizationName}-${SystemName}-03-a-bucket"
-aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-03-b-bucket"
-aws s3 ls s3://"${OrganizationName}-${SystemName}-03-b-bucket"
+aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-bucket"
+aws s3 ls s3://"${OrganizationName}-${SystemName}-bucket"
 ```

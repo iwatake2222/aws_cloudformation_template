@@ -1,3 +1,5 @@
+AWS CloudFormation: 03. S3バケットの作成とポリシー・アクセス許可の設定
+
 # 本記事について
 
 - AWS CloudFormationを用いて、色々なアーキテクチャを構築していきます
@@ -13,13 +15,13 @@
 ![image.png](https://qiita-image-store.s3.ap-northeast-1.amazonaws.com/0/214268/dd54be84-6028-072e-3332-f769be78edf1.png)
 
 - まず、S3バケットを作成します
-  - バケット名は `${OrganizationName}-${SystemName}-03-a-bucket` とします
+  - バケット名は `${OrganizationName}-${SystemName}-bucket` とします
   - ついでに、サンプルとして、Intelligent Tieringの設定をしています。これによって、コスト削減を見込めます。不要ならこの設定は削除してください
     - アップロードされたら即、ストレージクラスをINTELLIGENT_TIERINGに移行します
     - INTELLIGENT_TIERINGのルールとして、最終アクセスから半年後にARCHIVE、1年後にDEEP ARCHIVEのアクセス階層に自動的に移行するようにします
 - 次に、S3バケットポリシーを作成します
   - 適当なIAM Roleに対してアクセス権を付与しています
-    - ロール名は `${SystemName}-s3-permitted-by-bucket-policy` とします
+    - ロール名は `${SystemName}-s3-access-role` とします
 - 最後に、動作確認のためにここではIAM Roleも作成しています
   - このロールに対しては、特に何の設定も行いません
   - 作成したIAM RoleをEC2インスタンスに割り当て可能にするために、AWS::IAM::InstanceProfileも作成しています
@@ -48,7 +50,7 @@
 ```sh
 Region=ap-northeast-1
 OrganizationName=iwatake2222
-SystemName=sample
+SystemName=sample-03-a
 
 aws cloudformation deploy \
 --region "${Region}" \
@@ -70,9 +72,11 @@ SystemName="${SystemName}"
 - 自分のPCからアクセスすると、バケットの所有者としてのアクセスとなります。そのため、何の設定をしないでもデフォルトでアクセス可能となります
 
 ```sh:自分のPC
+OrganizationName=iwatake2222
+SystemName=sample-03-a
 dd if=/dev/zero of=dummy_file bs=1M count=100
-aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-03-a-bucket"
-aws s3 ls s3://"${OrganizationName}-${SystemName}-03-a-bucket"
+aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-bucket"
+aws s3 ls s3://"${OrganizationName}-${SystemName}-bucket"
 ```
 
 ### 権限付与したIAMロールからの接続確認
@@ -85,13 +89,13 @@ aws s3 ls s3://"${OrganizationName}-${SystemName}-03-a-bucket"
 
 ```sh:EC2上のターミナル
 OrganizationName=iwatake2222
-SystemName=sample
-aws s3 ls s3://"${OrganizationName}-${SystemName}-03-a-bucket"
+SystemName=sample-03-a
+aws s3 ls s3://"${OrganizationName}-${SystemName}-bucket"
 ```
 
 - 以下の操作で、このEC2インスタンスに先ほど作成したIAM Roleを割り当てます
   - AWSコンソール -> EC2 -> インスタンス -> 作成したインスタンスを右クリック -> セキュリティ -> IAM ロールを変更
-  - 作成したIAM ロール (sample-s3-permitted-by-bucket-policy) を選ぶ
+  - 作成したIAM ロール (sample-03-a-s3-access-role) を選ぶ
   - デフォルトだと何のIAM ロールも割当たっていません
 - この状態で再度S3バケットへアクセスすると、アップロードした `dummy_file` を見ることが出来るはずです
   - 万が一失敗する場合は、少し待つか、EC2インスタンスを再起動してみてください
@@ -122,7 +126,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${OrganizationName}-${SystemName}-03-a-bucket
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
       LifecycleConfiguration:
         Rules:
           - Id: IntelligentTierRule
@@ -140,7 +144,7 @@ Resources:
               Days: 365
       Tags:
         - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-03-a-bucket
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -169,7 +173,7 @@ Resources:
   S3AccessRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${SystemName}-s3-access-03-a-role
+      RoleName: !Sub ${SystemName}-s3-access-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -194,12 +198,12 @@ Resources:
 ![image.png](https://qiita-image-store.s3.ap-northeast-1.amazonaws.com/0/214268/2100c706-8953-1da4-e81c-e7211f32d16c.png)
 
 - まず、S3バケットを作成します
-  - バケット名は `${OrganizationName}-${SystemName}-03-b-bucket` とします
+  - バケット名は `${OrganizationName}-${SystemName}-bucket` とします
   - ついでに、サンプルとして、Intelligent Tieringの設定をしています。これによって、コスト削減を見込めます。不要ならこの設定は削除してください
     - アップロードされたら即、ストレージクラスをINTELLIGENT_TIERINGに移行します
     - INTELLIGENT_TIERINGのルールとして、最終アクセスから半年後にARCHIVE、1年後にDEEP ARCHIVEのアクセス階層に自動的に移行するようにします
 - 次に、IAMポリシーを作成します
-    - ポリシー名は `${SystemName}-s3-access-03-b-policy` とします
+    - ポリシー名は `${SystemName}-s3-access-policy` とします
     - このポリシーに対して、先ほど作成したS3バケットへのアクセス権を付与します
     - 必要に応じて、IAMロールも作成して、このポリシーを割り当ててください
     - なお、ポリシーはAWS::IAM::Policyではなく、AWS::IAM::ManagedPolicyとします。AWS::IAM::Policyだとインラインポリシーとなり、後から任意のIAMロールへ割り当てることが出来ないためです
@@ -225,7 +229,7 @@ Resources:
 ```sh
 Region=ap-northeast-1
 OrganizationName=iwatake2222
-SystemName=sample
+SystemName=sample-03-b
 
 aws cloudformation deploy \
 --region "${Region}" \
@@ -247,9 +251,11 @@ SystemName="${SystemName}"
 - 自分のPCからアクセスすると、バケットの所有者としてのアクセスとなります。そのため、何の設定をしないでもデフォルトでアクセス可能となります
 
 ```sh:自分のPC
+OrganizationName=iwatake2222
+SystemName=sample-03-b
 dd if=/dev/zero of=dummy_file_b bs=1M count=100
-aws s3 cp dummy_file_b s3://"${OrganizationName}-${SystemName}-03-b-bucket"
-aws s3 ls s3://"${OrganizationName}-${SystemName}-03-b-bucket"
+aws s3 cp dummy_file_b s3://"${OrganizationName}-${SystemName}-bucket"
+aws s3 ls s3://"${OrganizationName}-${SystemName}-bucket"
 ```
 
 ### 権限付与したIAMポリシーからの接続確認
@@ -259,13 +265,13 @@ aws s3 ls s3://"${OrganizationName}-${SystemName}-03-b-bucket"
 
 ```sh:EC2上のターミナル
 OrganizationName=iwatake2222
-SystemName=sample
-aws s3 ls s3://"${OrganizationName}-${SystemName}-03-b-bucket"
+SystemName=sample-03-b
+aws s3 ls s3://"${OrganizationName}-${SystemName}-bucket"
 ```
 
 - 以下の操作で、EC2インスタンスが割り当てられているIAMロールに、作成したIAMポリシーを割り当てます
-  - AWSコンソール -> EC2 -> インスタンス -> 作成したインスタンスを選択 -> セキュリティタブ -> IAM ロール (先ほど設定したsample-s3-access-03-a-roleになっているはず) をクリック
-  - IAMロールの設定画面が開いたら、許可を追加 -> ポリシーをアタッチ -> sample-s3-access-03-b-policyを選択 -> 許可を追加
+  - AWSコンソール -> EC2 -> インスタンス -> 作成したインスタンスを選択 -> セキュリティタブ -> IAM ロール (先ほど設定した `sample-03-a-s3-access-role` になっているはず) をクリック
+  - IAMロールの設定画面が開いたら、許可を追加 -> ポリシーをアタッチ -> `sample-03-b-s3-access-policy` を選択 -> 許可を追加
 - この状態で再度S3バケットへアクセスすると、アップロードした `dummy_file_b` を見ることが出来るはずです
   - 万が一失敗する場合は、少し待つか、EC2インスタンスを再起動してみてください
 
@@ -297,7 +303,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${OrganizationName}-${SystemName}-03-b-bucket
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
       LifecycleConfiguration:
         Rules:
           - Id: IntelligentTierRule
@@ -315,7 +321,7 @@ Resources:
               Days: 365
       Tags:
         - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-03-b-bucket
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
 
   #-----------------------------------------------------------------------------
   # IAM Policy to access S3 Bucket
@@ -323,7 +329,7 @@ Resources:
   S3AccessPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      ManagedPolicyName: !Sub ${SystemName}-s3-access-03-b-policy
+      ManagedPolicyName: !Sub ${SystemName}-s3-access-policy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -341,7 +347,7 @@ Resources:
   # S3AccessRole:
   #   Type: AWS::IAM::Role
   #   Properties:
-  #     RoleName: !Sub ${SystemName}-s3-access-03-b-role
+  #     RoleName: !Sub ${SystemName}-s3-access-role
   #     AssumeRolePolicyDocument:
   #       Version: 2012-10-17
   #       Statement:

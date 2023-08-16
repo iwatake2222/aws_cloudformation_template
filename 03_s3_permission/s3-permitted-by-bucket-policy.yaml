@@ -17,7 +17,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${OrganizationName}-${SystemName}-03-a-bucket
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
       LifecycleConfiguration:
         Rules:
           - Id: IntelligentTierRule
@@ -35,7 +35,7 @@ Resources:
               Days: 365
       Tags:
         - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-03-a-bucket
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -64,7 +64,7 @@ Resources:
   S3AccessRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${SystemName}-s3-access-03-a-role
+      RoleName: !Sub ${SystemName}-s3-access-role
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:

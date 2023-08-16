@@ -79,7 +79,7 @@ ssh aws_app
 OrganizationName=iwatake2222
 SystemName=sample
 dd if=/dev/zero of=dummy_file bs=1M count=100
-aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-02-bucket"
-aws s3 ls s3://"${OrganizationName}-${SystemName}-02-bucket"
+aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-bucket"
+aws s3 ls s3://"${OrganizationName}-${SystemName}-bucket"
 ```
 

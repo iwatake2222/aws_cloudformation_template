@@ -3,15 +3,15 @@ AWS CloudFormation: 02. アプリケーションサーバーの構築と踏み�
 # 本記事について
 
 - AWS CloudFormationを用いて、色々なアーキテクチャを構築していきます
-- 本記事では、アプリケーションサーバーを構築します
-- また、踏み台サーバー経由でプライベートサブネットに配置されたアプリケーションサーバーへアクセスする方法についても記載します
+- 今回は、アプリケーションサーバーを構築します
+- また、プライベートサブネットに配置されたアプリケーションサーバーへ踏み台サーバー経由でアクセスする方法についても記載します
 - [最新テンプレートはGitHubに配置しています](https://github.com/iwatake2222/aws_cloudformation_template)
 
 ## 構築するアーキテクチャ
 
-![image.png](https://qiita-image-store.s3.ap-northeast-1.amazonaws.com/0/214268/6174dbfd-d56e-1bbe-8f69-5169d7bc191b.png)
+![image.png](https://qiita-image-store.s3.ap-northeast-1.amazonaws.com/0/214268/03ca61b9-d436-44a1-8dfb-51416dff4827.png)
 
-- VPCは既に作成済みであるため、図中の太字のEC2、IAM Role、S3のみを作成します
+- VPCやサブネットといったインフラ周りは既に作成済みであるため、図中赤字のEC2、IAM Role、S3のみを作成します
 - Private SubnetにEC2 インスタンスを配置します。記事内では便宜上これをアプリケーションサーバーとみなしますが、用途は特に限定しません
 - 本記事ではサンプルとして、アプリケーションサーバー構築時にDockerのインストールも行います
 - おまけに、S3バケットを作成して、アプリケーションサーバーからアクセスできることも確認します
@@ -161,8 +161,8 @@ ssh aws_app
 OrganizationName=iwatake2222
 SystemName=sample
 dd if=/dev/zero of=dummy_file bs=1M count=100
-aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-02-bucket"
-aws s3 ls s3://"${OrganizationName}-${SystemName}-02-bucket"
+aws s3 cp dummy_file s3://"${OrganizationName}-${SystemName}-bucket"
+aws s3 ls s3://"${OrganizationName}-${SystemName}-bucket"
 ```
 
 # テンプレート
@@ -295,10 +295,10 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${OrganizationName}-${SystemName}-02-bucket
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
       Tags:
         - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-02-bucket
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
 ```
 
 ## 簡単な説明

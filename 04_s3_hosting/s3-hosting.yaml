@@ -17,7 +17,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${OrganizationName}-${SystemName}-04-bucket
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
         IgnorePublicAcls: false
@@ -28,7 +28,7 @@ Resources:
         ErrorDocument: error.html
       Tags:
         - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-04-bucket
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy

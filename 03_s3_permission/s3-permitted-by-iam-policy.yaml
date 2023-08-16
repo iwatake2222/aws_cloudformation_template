@@ -17,7 +17,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${OrganizationName}-${SystemName}-03-b-bucket
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
       LifecycleConfiguration:
         Rules:
           - Id: IntelligentTierRule
@@ -35,7 +35,7 @@ Resources:
               Days: 365
       Tags:
         - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-03-b-bucket
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
 
   #-----------------------------------------------------------------------------
   # IAM Policy to access S3 Bucket
@@ -43,7 +43,7 @@ Resources:
   S3AccessPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      ManagedPolicyName: !Sub ${SystemName}-s3-access-03-b-policy
+      ManagedPolicyName: !Sub ${SystemName}-s3-access-policy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -61,7 +61,7 @@ Resources:
   # S3AccessRole:
   #   Type: AWS::IAM::Role
   #   Properties:
-  #     RoleName: !Sub ${SystemName}-s3-access-03-b-role
+  #     RoleName: !Sub ${SystemName}-s3-access-role
   #     AssumeRolePolicyDocument:
   #       Version: 2012-10-17
   #       Statement:

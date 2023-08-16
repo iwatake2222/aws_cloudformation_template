@@ -24,7 +24,7 @@
 Region=ap-northeast-1
 RegionForLambdaEdge=us-east-1
 OrganizationName=iwatake2222
-SystemName=sample05
+SystemName=sample-05
 
 aws cloudformation deploy \
 --region "${Region}" \
@@ -49,11 +49,23 @@ SystemName="${SystemName}"
 aws cloudformation describe-stacks --stack-name "${SystemName}"-s3-cloudfront-cognito
 
 cd cognito-at-edge
-# edit index.js
+# edit index.js ( us-east-1 -> ap-northeast-1 )
 zip -r ../cognito-at-edge.zip ./*
 cd ..
 aws lambda update-function-code --region "${RegionForLambdaEdge}" --function-name "${SystemName}-lambda-edge" --zip-file fileb://cognito-at-edge.zip
 ```
+
+## How to Deploy Lambda@Edge
+
+- AWS Console in us-east-1 -> Lambda -> "${SystemName}-lambda-edge"
+- Add trigger
+    - Source: CloudFront
+    - Deploy to Lambda@Edge
+- Configure new CloudFront trigger
+    - Distribution: "${SystemName}-distribution"
+    - Cache behavior: *
+    - CloudFront event: Viewer request
+    - Confirm deploy to Lambda@Edge: checked
 
 ## How to prepare cognito-at-edge
 
@@ -64,6 +76,21 @@ mkdir -p cognito-at-edge && cd cognito-at-edge
 npm install cognito-at-edge
 nano index.js
 ```
+
+## How to Login
+
+- Visit `https://oooo.net` , then you'll see login console
+- Sign up
+    - you may see `An error was encountered with the requested page.` error, but ignore it
+- Open AWS Console -> Cognito -> User Pool, then you'll see the new user
+- Select the new user -> Action -> Confirm the account
+- Visit `https://oooo.net` again
+- Login with the account you created
+
+## Removal
+
+- Don't forget to delete CloudFormation stack in us-east-1 for Lambda@Edge
+- To delete it, you need to delete a trigger in CloutFront beforehand and neet to wait few minutes
 
 ## Reference
 

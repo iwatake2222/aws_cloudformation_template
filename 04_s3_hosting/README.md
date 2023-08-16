@@ -19,7 +19,7 @@
 ```sh
 Region=ap-northeast-1
 OrganizationName=iwatake2222
-SystemName=sample
+SystemName=sample-04-a
 
 aws cloudformation deploy \
 --region "${Region}" \
@@ -30,15 +30,15 @@ OrganizationName="${OrganizationName}" \
 SystemName="${SystemName}"
 
 echo hello > index.html
-aws s3 cp index.html s3://"${OrganizationName}-${SystemName}-04-bucket"
+aws s3 cp index.html s3://"${OrganizationName}-${SystemName}-bucket"
 
-curl http://"${OrganizationName}-${SystemName}-04-bucket".s3-website-ap-northeast-1.amazonaws.com
+curl http://"${OrganizationName}-${SystemName}-bucket".s3-website-ap-northeast-1.amazonaws.com
 ```
 
 ```sh
 Region=ap-northeast-1
 OrganizationName=iwatake2222
-SystemName=sample
+SystemName=sample-04-b
 
 aws cloudformation deploy \
 --region "${Region}" \
@@ -49,7 +49,7 @@ OrganizationName="${OrganizationName}" \
 SystemName="${SystemName}"
 
 echo hello > index.html
-aws s3 cp index.html s3://"${OrganizationName}-${SystemName}-04-bucket"
+aws s3 cp index.html s3://"${OrganizationName}-${SystemName}-bucket"
 
 aws cloudformation describe-stacks --stack-name "${SystemName}"-s3-cloudfront --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDomainName'].OutputValue" --output text
 

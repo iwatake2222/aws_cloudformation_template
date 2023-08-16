@@ -123,7 +123,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${OrganizationName}-${SystemName}-02-bucket
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
       Tags:
         - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-02-bucket
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
