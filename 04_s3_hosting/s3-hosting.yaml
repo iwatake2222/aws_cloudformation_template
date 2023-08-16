@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create an S3 bucket for hosting a static website
+
+Parameters:
+  OrganizationName:
+    Description: Organization Name
+    Type: String
+  SystemName:
+    Description: System Name
+    Type: String
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # S3 bucket
+  #-----------------------------------------------------------------------------
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${OrganizationName}-${SystemName}-04-bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        IgnorePublicAcls: false
+        BlockPublicPolicy: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      Tags:
+        - Key: Name
+          Value: !Sub ${OrganizationName}-${SystemName}-04-bucket
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${S3Bucket}/*
+            Principal: '*'
