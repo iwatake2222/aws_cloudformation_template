@@ -8,6 +8,12 @@
     - AWS::S3::Bucket
     - AWS::S3::BucketPolicy
 
+- S3 Bucket + CloudFront (OAC) for hosting a static website
+    - AWS::S3::Bucket
+    - AWS::S3::BucketPolicy
+    - AWS::CloudFront::Distribution
+    - AWS::CloudFront::OriginAccessControl
+
 ## How to run
 
 ```sh
@@ -19,7 +25,6 @@ aws cloudformation deploy \
 --region "${Region}" \
 --stack-name "${SystemName}"-s3-hosting \
 --template-file ./s3-hosting.yaml \
---capabilities CAPABILITY_NAMED_IAM \
 --parameter-overrides \
 OrganizationName="${OrganizationName}" \
 SystemName="${SystemName}"
@@ -27,5 +32,26 @@ SystemName="${SystemName}"
 echo hello > index.html
 aws s3 cp index.html s3://"${OrganizationName}-${SystemName}-04-bucket"
 
-curl http://"${OrganizationName}-${SystemName}-04-bucket".s3-website-ap-northeast-1.amazonaws.com/
+curl http://"${OrganizationName}-${SystemName}-04-bucket".s3-website-ap-northeast-1.amazonaws.com
+```
+
+```sh
+Region=ap-northeast-1
+OrganizationName=iwatake2222
+SystemName=sample
+
+aws cloudformation deploy \
+--region "${Region}" \
+--stack-name "${SystemName}"-s3-cloudfront \
+--template-file ./s3-cloudfront.yaml \
+--parameter-overrides \
+OrganizationName="${OrganizationName}" \
+SystemName="${SystemName}"
+
+echo hello > index.html
+aws s3 cp index.html s3://"${OrganizationName}-${SystemName}-04-bucket"
+
+aws cloudformation describe-stacks --stack-name "${SystemName}"-s3-cloudfront --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDomainName'].OutputValue" --output text
+
+curl https://oooooooooooooo.cloudfront.net
 ```
