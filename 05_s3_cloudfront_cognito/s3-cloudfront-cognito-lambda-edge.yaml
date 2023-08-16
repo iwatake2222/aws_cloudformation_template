@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create an S3 bucket and CloudFront (OAC) for hosting a static website with Cognito authentification
+
+Parameters:
+  SystemName:
+    Description: System Name
+    Type: String
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # IAM roles
+  #-----------------------------------------------------------------------------
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${SystemName}-lambda-edge-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+              - edgelambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub ${SystemName}-lambda-edge-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:GetFunction
+                  - lambda:EnableReplication*
+                  - iam:CreateServiceLinkedRole
+                  - cloudfront:CreateDistribution
+                  - cloudfront:UpdateDistribution
+                Resource: '*'
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${SystemName}-lambda-edge
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            const response = {
+                status: 200,
+                body: JSON.stringify('Hello from Lambda!'),
+            };
+            return response;
+          };

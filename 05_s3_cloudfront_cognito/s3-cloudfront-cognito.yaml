@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create an S3 bucket and CloudFront (OAC) for hosting a static website with Cognito authentification
+
+Parameters:
+  OrganizationName:
+    Description: Organization Name
+    Type: String
+  SystemName:
+    Description: System Name
+    Type: String
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # S3 bucket
+  #-----------------------------------------------------------------------------
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
+      Tags:
+        - Key: Name
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${S3Bucket}/*
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
+
+  #-----------------------------------------------------------------------------
+  # CloudFront
+  #-----------------------------------------------------------------------------
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub ${SystemName}-distribution
+        Origins:
+          - DomainName: !GetAtt S3Bucket.RegionalDomainName
+            Id: S3Origin
+            OriginAccessControlId: !GetAtt OAC.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        Enabled: true
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized (Recommended for S3)
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+        PriceClass: PriceClass_All
+
+  OAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: Access Control
+        Name: !Sub ${SystemName}-oac
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+
+  #-----------------------------------------------------------------------------
+  # Cognito User pool
+  #-----------------------------------------------------------------------------
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub ${SystemName}-user-pool
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub ${OrganizationName}-${SystemName}
+      UserPoolId: !Ref CognitoUserPool
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub ${SystemName}-client
+      UserPoolId: !Ref CognitoUserPool
+      CallbackURLs:
+        - !Join ["", [https://, !GetAtt CloudFrontDistribution.DomainName]]
+      SupportedIdentityProviders:
+        - COGNITO
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - openid
+
+Outputs:
+  CloudFrontDomainName:
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub ${SystemName}-domain-name
+  UserPool:
+    Value: !Ref CognitoUserPool
+    Export:
+      Name: !Sub ${SystemName}-user-pool
+  UserPoolClient:
+    Value: !Ref CognitoUserPoolClient
+    Export:
+      Name: !Sub ${SystemName}-user-pool-client
+  UserPoolDomain:
+    Value: !Ref CognitoUserPoolDomain
+    Export:
+      Name: !Sub ${SystemName}-user-pool-domain
