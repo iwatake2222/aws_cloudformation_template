@@ -58,6 +58,9 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt S3LambdaEventsRule.Arn
 
+  #-----------------------------------------------------------------------------
+  # EventBridge
+  #-----------------------------------------------------------------------------
   S3LambdaEventsRule:
     Type: AWS::Events::Rule
     Properties:
