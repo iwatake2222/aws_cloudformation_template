@@ -2,10 +2,16 @@ AWS CloudFormation: 02. アプリケーションサーバーの構築と踏み�
 
 # 本記事について
 
-- AWS CloudFormationを用いて、色々なアーキテクチャを構築していきます
+- AWS CloudFormationを用いて、色々なアーキテクチャを構築していきます。テンプレートのコピペ元としてご活用いただければ幸いです
+  - [01. 仮想ネットワークの構築](https://qiita.com/iwatake2222/items/d19bd983391a292345af)
+  - [02. アプリケーションサーバーの構築と踏み台サーバー経由でのアクセス方法](https://qiita.com/iwatake2222/items/45822e5ef9b56df42069)
+  - [03. S3バケットの作成とポリシー・アクセス許可の設定](https://qiita.com/iwatake2222/items/d9c977e740ec1ee16b9c)
+  - [04. S3 (+ CloudFront + OAC) による静的ウェブサイトのホスティング](https://qiita.com/iwatake2222/items/ac4392c11f83af2f320a)
+  - [05. S3 + CloudFront + Cognito + Lambda@Edge による認証機能付き静的ウェブサイトのホスティング](https://qiita.com/iwatake2222/items/998d77951b7044e9bbbf)
+  - [06. Lambda関数を作成して、S3/EventBridge/SQS から呼び出す](https://qiita.com/iwatake2222/items/e6eed5301e807e1a685d)
+- [最新テンプレートはGitHubに配置しています](https://github.com/iwatake2222/aws_cloudformation_template)
 - 今回は、アプリケーションサーバーを構築します
 - また、プライベートサブネットに配置されたアプリケーションサーバーへ踏み台サーバー経由でアクセスする方法についても記載します
-- [最新テンプレートはGitHubに配置しています](https://github.com/iwatake2222/aws_cloudformation_template)
 
 ## 構築するアーキテクチャ
 
@@ -420,4 +426,3 @@ Resources:
 - 上述したSSMからの簡易アクセスを実現するため、`arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore` を付与しています
 - また、S3に対してのアクセス権を付与しています
     - 本来これは、S3 バケット名も指定して限定すべきです。が、ここでは簡単のため全てのS3バケットに対してアクセス権を付与しています
-
