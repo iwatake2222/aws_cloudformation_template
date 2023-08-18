@@ -53,8 +53,8 @@ Resources:
   LambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref LambdaFunction
       Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt S3LambdaEventsRule.Arn
 
@@ -86,10 +86,10 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${OrganizationName}-${SystemName}-source-bucket
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
       NotificationConfiguration:
         EventBridgeConfiguration:
           EventBridgeEnabled: true
       Tags:
         - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-source-bucket
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket

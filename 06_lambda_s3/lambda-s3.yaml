@@ -53,22 +53,24 @@ Resources:
   LambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref LambdaFunction
       Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaFunction
       Principal: s3.amazonaws.com
-      SourceArn: !GetAtt S3Bucket.Arn
+      # SourceArn: !GetAtt S3Bucket.Arn    # Avoid recursive reference
+      SourceArn: !Sub arn:aws:s3:::${OrganizationName}-${SystemName}-bucket
 
   #-----------------------------------------------------------------------------
   # S3 bucket
   #-----------------------------------------------------------------------------
   S3Bucket:
     Type: AWS::S3::Bucket
+    DependsOn: LambdaFunction
     Properties:
-      BucketName: !Sub ${OrganizationName}-${SystemName}-source-bucket
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: 's3:ObjectCreated:*'
             Function: !GetAtt LambdaFunction.Arn
       Tags:
         - Key: Name
-          Value: !Sub ${OrganizationName}-${SystemName}-source-bucket
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
