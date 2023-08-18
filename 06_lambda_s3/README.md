@@ -43,11 +43,41 @@ OrganizationName="${OrganizationName}" \
 SystemName="${SystemName}"
 ```
 
+```sh
+Region=ap-northeast-1
+OrganizationName=iwatake2222
+SystemName=sample-06-c
+
+aws cloudformation deploy \
+--region "${Region}" \
+--stack-name "${SystemName}"-lambda-s3-sqs \
+--template-file ./lambda-s3-sqs.yaml \
+--capabilities CAPABILITY_NAMED_IAM \
+--parameter-overrides \
+OrganizationName="${OrganizationName}" \
+SystemName="${SystemName}"
+```
+
+```sh
+Region=ap-northeast-1
+OrganizationName=iwatake2222
+SystemName=sample-06-d
+
+aws cloudformation deploy \
+--region "${Region}" \
+--stack-name "${SystemName}"-lambda-s3-event-sqs \
+--template-file ./lambda-s3-event-sqs.yaml \
+--capabilities CAPABILITY_NAMED_IAM \
+--parameter-overrides \
+OrganizationName="${OrganizationName}" \
+SystemName="${SystemName}"
+```
+
 ## How to test
 
 ```sh
 touch dummy
-aws s3 cp dummy s3://"${OrganizationName}-${SystemName}-source-bucket"
+aws s3 cp dummy s3://"${OrganizationName}-${SystemName}-bucket"
 ```
 
 - AWS Console -> CloudWatch -> Log Group -> /aws/lambda/${SystemName}

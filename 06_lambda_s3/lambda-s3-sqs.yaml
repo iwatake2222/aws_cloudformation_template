@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create a lambda function triggered by S3 upload via SQS Queue
+
+Parameters:
+  OrganizationName:
+    Description: Organization Name
+    Type: String
+  SystemName:
+    Description: System Name
+    Type: String
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # Lambda Function
+  #-----------------------------------------------------------------------------
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${SystemName}-lambda-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub ${SystemName}-lambda-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sqs:*'
+                Resource:
+                  - !GetAtt SQSQueue.Arn
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${SystemName}-lambda
+      Runtime: python3.10
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+            SQSQueueUrl: !GetAtt SQSQueue.QueueUrl
+      Code:
+        ZipFile: |
+          import boto3
+          import os
+          def handler(event, context):
+            print('Lambda is called!!')
+            print('event: ', event)
+
+            # # No need to receive_message
+            # queue_url = os.environ['SQSQueueUrl']
+            # sqs_client = boto3.client('sqs')
+            # response = sqs_client.receive_message(QueueUrl=queue_url)
+            # print(response)
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaFunction
+      Principal: sqs.amazonaws.com
+      SourceArn: !GetAtt SQSQueue.Arn
+
+  LambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt SQSQueue.Arn
+      FunctionName: !GetAtt LambdaFunction.Arn
+
+  #-----------------------------------------------------------------------------
+  # SQS Queue
+  #-----------------------------------------------------------------------------
+  SQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${SystemName}-queue
+      # ContentBasedDeduplication: true
+      # FifoQueue: true
+
+  SQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+            - sqs:SendMessage
+            Effect: Allow
+            Principal: '*'
+            Resource: !GetAtt SQSQueue.Arn
+            Condition:
+              ArnEquals:
+                # aws:SourceArn: !GetAtt S3Bucket.Arn    # Avoid recursive reference
+                aws:SourceArn: !Sub arn:aws:s3:::${OrganizationName}-${SystemName}-bucket
+      Queues:
+        - !Ref SQSQueue
+
+  #-----------------------------------------------------------------------------
+  # S3 bucket
+  #-----------------------------------------------------------------------------
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    DependsOn: SQSQueue
+    Properties:
+      BucketName: !Sub ${OrganizationName}-${SystemName}-bucket
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Queue: !GetAtt SQSQueue.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub ${OrganizationName}-${SystemName}-bucket
