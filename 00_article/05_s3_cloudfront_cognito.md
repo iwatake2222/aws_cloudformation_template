@@ -141,6 +141,7 @@ const authenticator = new Authenticator({
   userPoolId: 'ap-northeast-1_tyo1a1FHH', // user pool ID
   userPoolAppId: '63gcbm2jmskokurt5ku9fhejc6', // user pool app client ID
   userPoolDomain: 'iwatake2222-sample-05.auth.ap-northeast-1.amazoncognito.com', // user pool domain
+  cookiePath: '/',
 });
 
 exports.handler = async (request) => authenticator.handle(request);
@@ -418,3 +419,25 @@ Resources:
             return response;
           };
 ```
+
+
+# トラブルシューティング
+
+## しばらく経過後、アクセスできなくなった
+
+- IDトークンの期限が切れた後(デフォルトだと30分後)、トップindex.html以外にアクセスするとこのような症状が発生します
+  - 例えば、https://ooo.cloudfront.net/aaa/xxx/index.html
+  - 詳しく原因を見ると、リダイレクトループが発生しているようでした
+  - Cookieを削除することで一時的に対応できます。が、毎回面倒です
+- cognito-at-edgeに対して、Cookieのパスを指定することで根本的に解決できるようです
+  - https://github.com/awslabs/cognito-at-edge/issues/69
+  - index.jsに以下のパラメータを追加してください
+
+```
+const authenticator = new Authenticator({
+  ...,
+  cookiePath: '/',
+});
+```
+
+![image.png](https://qiita-image-store.s3.ap-northeast-1.amazonaws.com/0/214268/cd38fe6e-d629-a70f-2dac-bf00e5b84ee0.png)
