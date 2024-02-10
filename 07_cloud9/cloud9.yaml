@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create a Cloud9 env
+
+Parameters:
+  SystemName:
+    Description: System Name
+    Type: String
+  AvailabilityZone:
+    Description: Availability Zone
+    Type: AWS::EC2::AvailabilityZone::Name
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # VPC
+  #-----------------------------------------------------------------------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  #-----------------------------------------------------------------------------
+  # Public Subnet
+  #-----------------------------------------------------------------------------
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/20
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-public-subnet
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-public-rtb
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetToInternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  #-----------------------------------------------------------------------------
+  # Cloud9
+  #-----------------------------------------------------------------------------
+  Cloud9:
+    Type: AWS::Cloud9::EnvironmentEC2
+    Properties: 
+      AutomaticStopTimeMinutes: 30
+      ConnectionType: CONNECT_SSH
+      ImageId: ubuntu-22.04-x86_64
+      InstanceType: t2.micro
+      Name: !Sub ${SystemName}-cloud9
+      SubnetId: !Ref PublicSubnet
