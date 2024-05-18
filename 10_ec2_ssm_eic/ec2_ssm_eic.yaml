@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Create an EC2 and connect using SSM and EC2 Instance Connect (EIC)
+
+Parameters:
+  SystemName:
+    Description: System Name
+    Type: String
+  AvailabilityZone:
+    Description: Availability Zone
+    Type: AWS::EC2::AvailabilityZone::Name
+
+Resources:
+  #-----------------------------------------------------------------------------
+  # VPC
+  #-----------------------------------------------------------------------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  #-----------------------------------------------------------------------------
+  # Public Subnet
+  #-----------------------------------------------------------------------------
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/20
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-public-subnet
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-public-rtb
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetToInternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  #-----------------------------------------------------------------------------
+  # EC2
+  #-----------------------------------------------------------------------------
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Security Group for an EC2 server'
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-ec2-sg
+
+  # Key can be found in AWS console: Systems Manager -> Parameter Store
+  EC2KeyPair:
+    Type: AWS::EC2::KeyPair
+    Description: KeyPair for an EC2 server
+    Properties:
+      KeyName: !Sub ${SystemName}-ec2-keypair
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0595d6e81396a9efb   # Ubuntu Server 22.04
+      InstanceType: t2.micro
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 64
+      KeyName: !Ref EC2KeyPair
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      SubnetId: !Ref PublicSubnet
+      IamInstanceProfile:
+        !Ref EC2InstanceProfile
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-ec2
+
+  EC2EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-ec2-eip
+
+  EC2EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt EC2EIP.AllocationId
+      InstanceId: !Ref EC2Instance
+
+  #-----------------------------------------------------------------------------
+  # IAM Role for EC2 server
+  #-----------------------------------------------------------------------------
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${SystemName}-ec2-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore   # To connect to an instance using Session Manager
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: 
+        - !Ref EC2Role
+
