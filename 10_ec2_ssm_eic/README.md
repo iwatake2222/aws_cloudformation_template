@@ -28,32 +28,23 @@ aws ssm start-session --target i-00000000000000000
 ### SSH
 
 - Configure `~/.ssh/config`
+  - Push SSH key, then start ssh session
 
 ```
 # ~/.ssh/config
-host i-* mi-*
-    ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
+Host i-* mi-*
+    ProxyCommand sh -c "aws ec2-instance-connect send-ssh-public-key --instance-id %h --instance-os-user %r --ssh-public-key 'file://~/.ssh/id_rsa.pub' && aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
 
-# (Optional) For Windows
-host i-* mi-*
-    ProxyCommand C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters portNumber=%p"
-
-# (Optional) To desctibe host id
+# (Optional) To specify host id
 Host sample
     HostName i-00000000000000000
-    ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
+    ProxyCommand sh -c "aws ec2-instance-connect send-ssh-public-key --instance-id %h --instance-os-user %r --ssh-public-key 'file://~/.ssh/id_rsa.pub' && aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
 ```
 
-- Send SSH key using EC2 Instance Connect (EIC)
-
-```
-INSTANCE_Id=i-00000000000000000
-USER=ubuntu
-aws ec2-instance-connect send-ssh-public-key \
---instance-id "${INSTANCE_Id}" \
---instance-os-user "${USER}" \
---ssh-public-key file://~/.ssh/id_rsa.pub
-```
+- (Optional) For Windows
+  - Replace 
+    - `sh -c`
+    - `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
 
 - Connect
 
@@ -62,3 +53,7 @@ ssh ubuntu@i-00000000000000000
 
 ssh ubuntu@sample
 ```
+
+## Note
+
+- `AWS::EC2::EIP` is needed. Otherwise, EC2 is unable to connect the Internet

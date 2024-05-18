@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: |
-  Create an EC2 and connect using SSM and EC2 Instance Connect (EIC)
+  Create an EC2 and connect using SSM and EC2 Instance Connect (EIC) Endpoint
 
 Parameters:
   SystemName:
@@ -70,6 +70,25 @@ Resources:
       GatewayId: !Ref InternetGateway
 
   #-----------------------------------------------------------------------------
+  # EC2 Instance Connect Endpoint
+  #-----------------------------------------------------------------------------
+  EICSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Security Group for an EC2 Instance Connect Endpoint'
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemName}-eic-sg
+
+  EICEndpoint:
+    Type: AWS::EC2::InstanceConnectEndpoint
+    Properties: 
+      SecurityGroupIds: 
+        - !Ref EICSecurityGroup
+      SubnetId: !Ref PublicSubnet
+
+  #-----------------------------------------------------------------------------
   # EC2
   #-----------------------------------------------------------------------------
   EC2SecurityGroup:
@@ -77,6 +96,11 @@ Resources:
     Properties:
       GroupDescription: 'Security Group for an EC2 server'
       VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref EICSecurityGroup
       Tags:
         - Key: Name
           Value: !Sub ${SystemName}-ec2-sg
@@ -129,12 +153,9 @@ Resources:
                 - ec2.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore   # To connect to an instance using Session Manager
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles: 
         - !Ref EC2Role
-
