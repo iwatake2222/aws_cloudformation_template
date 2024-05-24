@@ -1,16 +1,33 @@
 # Create an EC2 and connect using SSM and EC2 Instance Connect (EIC)
 
-## How to construct
+## AWS Architecture
+
+### EC2 in a Public Subnet
+
+![](./ec2_ssm_eic_public.drawio.png)
+
+### EC2 in a Private Subnet
+
+![](./ec2_ssm_eic_private.drawio.png)
+
+## How to run
+
+- Select `SystemName` and `TemplateFileName` according to whether you want to place EC2 in a public subnet or in a private subnet
 
 ```sh
 Region=ap-northeast-1
-SystemName=sample-ec2-ssm-eic-public
 AvailabilityZone=ap-northeast-1a
+
+SystemName=sample-ec2-ssm-eic-public
+TemplateFileName=./ec2_ssm_eic_public.yaml
+
+# SystemName=sample-ec2-ssm-eic-private
+# TemplateFileName=./ec2_ssm_eic_private.yaml
 
 aws cloudformation deploy \
 --region "${Region}" \
 --stack-name "${SystemName}" \
---template-file ./ec2_ssm_eic_public.yaml \
+--template-file ${TemplateFileName} \
 --capabilities CAPABILITY_NAMED_IAM \
 --parameter-overrides \
 SystemName="${SystemName}" \
