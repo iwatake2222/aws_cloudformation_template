@@ -114,28 +114,17 @@ Resources:
         - DeviceName: /dev/xvda
           Ebs:
             VolumeSize: 64
-      SecurityGroupIds:
-        - !Ref EC2SecurityGroup
-      SubnetId: !Ref PublicSubnet
       IamInstanceProfile:
         !Ref EC2InstanceProfile
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref EC2SecurityGroup
+          SubnetId: !Ref PublicSubnet
       Tags:
         - Key: Name
           Value: !Sub ${SystemName}-ec2
-
-  EC2EIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-      Tags:
-        - Key: Name
-          Value: !Sub ${SystemName}-ec2-eip
-
-  EC2EIPAssociation:
-    Type: AWS::EC2::EIPAssociation
-    Properties:
-      AllocationId: !GetAtt EC2EIP.AllocationId
-      InstanceId: !Ref EC2Instance
 
   #-----------------------------------------------------------------------------
   # IAM Role for EC2 server

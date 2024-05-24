@@ -1,14 +1,16 @@
 # Create an EC2 and connect using SSM and EC2 Instance Connect (EIC)
 
+## How to construct
+
 ```sh
 Region=ap-northeast-1
-SystemName=sample-ec2-ssm-eic
+SystemName=sample-ec2-ssm-eic-public
 AvailabilityZone=ap-northeast-1a
 
 aws cloudformation deploy \
 --region "${Region}" \
 --stack-name "${SystemName}" \
---template-file ./ec2_ssm_eic.yaml \
+--template-file ./ec2_ssm_eic_public.yaml \
 --capabilities CAPABILITY_NAMED_IAM \
 --parameter-overrides \
 SystemName="${SystemName}" \
@@ -36,8 +38,9 @@ Host i-* mi-*
     ProxyCommand sh -c "aws ec2-instance-connect send-ssh-public-key --instance-id %h --instance-os-user %r --ssh-public-key 'file://~/.ssh/id_rsa.pub' && aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
 
 # (Optional) To specify host id
-Host sample
+Host ec2-server
     HostName i-00000000000000000
+    User ubuntu
     ProxyCommand sh -c "aws ec2-instance-connect send-ssh-public-key --instance-id %h --instance-os-user %r --ssh-public-key 'file://~/.ssh/id_rsa.pub' && aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
 ```
 
@@ -51,9 +54,5 @@ Host sample
 ```
 ssh ubuntu@i-00000000000000000
 
-ssh ubuntu@sample
+ssh ec2-server
 ```
-
-## Note
-
-- `AWS::EC2::EIP` is needed. Otherwise, EC2 is unable to connect the Internet
