@@ -170,8 +170,9 @@ Resources:
       InstanceType: t2.micro
       # InstanceType: m7i.xlarge
       BlockDeviceMappings:
-        - DeviceName: /dev/xvda
+        - DeviceName: /dev/sda1
           Ebs:
+            VolumeType: gp3
             VolumeSize: 64
       IamInstanceProfile:
         !Ref EC2InstanceProfile

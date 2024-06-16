@@ -87,8 +87,9 @@ Resources:
       ImageId: ami-0595d6e81396a9efb   # Ubuntu Server 22.04
       InstanceType: t2.micro
       BlockDeviceMappings:
-        - DeviceName: /dev/xvda
+        - DeviceName: /dev/sda1
           Ebs:
+            VolumeType: gp3
             VolumeSize: 64
       IamInstanceProfile:
         !Ref EC2InstanceProfile
