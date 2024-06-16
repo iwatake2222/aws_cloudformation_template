@@ -10,7 +10,7 @@
 
 ![](./ec2_ssm_eic_private.drawio.png)
 
-## How to run
+## How to deploy
 
 - Select `SystemName` and `TemplateFileName` according to whether you want to place EC2 in a public subnet or in a private subnet
 

@@ -10,7 +10,7 @@
 
 ![](./ec2_eic_private.drawio.png)
 
-## How to run
+## How to deploy
 
 - Select `SystemName` and `TemplateFileName` according to whether you want to place EC2 in a public subnet or in a private subnet
 
@@ -63,6 +63,12 @@ Host ec2-server-tunnel
     HostName i-00000000000000000
     User ubuntu
     ProxyCommand sh -c "aws ec2-instance-connect send-ssh-public-key --instance-id %h --instance-os-user %r --ssh-public-key 'file://~/.ssh/id_rsa.pub' && aws ec2-instance-connect open-tunnel --instance-id %h --remote-port 22 --local-port 2222"
+
+Host ec2-server-tunnel-rdp
+    HostName i-00000000000000000
+    User ubuntu
+    ProxyCommand sh -c "aws ec2-instance-connect send-ssh-public-key --instance-id %h --instance-os-user %r --ssh-public-key 'file://~/.ssh/id_rsa.pub' && aws ec2-instance-connect open-tunnel --instance-id %h --remote-port 3389 --local-port 3389"
+
 ```
 
 - (Optional) For Windows
@@ -81,3 +87,75 @@ ssh ec2-server
 ssh ec2-server-tunnel
 ssh ubuntu@localhost -p 2222
 ```
+
+## How to connect via Remote Desktop (xrdp)
+
+### Setup
+
+- Modify Security Group for EC2
+  - Disable commmet in template
+  - Or, manually add inboond rule
+    - Type: RDP (RCP, 3389)
+    - Source: Custom (EICSecurityGroup)
+  - Note: Only 22 and 3389 ports are allowed. If you use another port, you'll encounter the following error
+    - `awscli.customizations.ec2instanceconnect.websocket - ERROR - {"ErrorCode":"InvalidParameter","Message":"The specified RemotePort is not valid. Specify either 22 or 3389 as the RemotePort and retry your request."}`
+
+![](./xrdp_sg.png)
+
+- Setup the EC2 instance
+  - Set password for `ubuntu`
+    - or add a new user
+  - Install desktop environment and xrdp
+
+```sh
+sudo passwd ubuntu
+sudo apt update
+sudo apt install -y ubuntu-desktop xrdp
+sudo systemctl enable xrdp
+sudo reboot
+```
+
+### How to connect
+
+- Open tunnel using EC2 Instance Connect in your local machine
+
+```sh
+ssh ec2-server-tunnel-rdp
+```
+
+- Connect using Remote Desktop
+  - Host: `localhost:3389`
+
+![](./xrdp_host_1.png)
+
+![](./xrdp_host_2.png)
+
+![](./xrdp_host_3.png)
+
+## How to connect via VNC
+
+sudo systemctl disable xrdp
+
+sudo apt install -y tigervnc-standalone-server dbus-x11
+
+
+echo '#!/bin/sh' | sudo tee /etc/X11/Xsession
+sudo chmod +x /etc/X11/Xsession
+
+mkdir ~/.vnc
+echo '#!/bin/sh
+[ -x /etc/vnc/xstartup ] && exec /etc/vnc/xstartup
+[ -r $HOME/.Xresources ] && xrdb $HOME/.Xresources
+vncconfig -iconic &
+dbus-launch --exit-with-session gnome-session
+' | tee ~/.vnc/xstartup
+chmod +x ~/.vnc/xstartup
+
+vncserver :1 -localhost no -geometry 1920x1080
+vncserver -kill :1
+
+/etc/tigervnc/vncserver-config-defaults
+/etc/tigervnc/vncserver.users
+
+sudo systemctl enable tigervncserver@:1.service
+sudo systemctl status tigervncserver@:1.service

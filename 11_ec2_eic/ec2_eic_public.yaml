@@ -101,6 +101,10 @@ Resources:
           FromPort: 22
           ToPort: 22
           SourceSecurityGroupId: !Ref EICSecurityGroup
+        # - IpProtocol: tcp
+        #   FromPort: 3389
+        #   ToPort: 3389
+        #   SourceSecurityGroupId: !Ref EICSecurityGroup
       Tags:
         - Key: Name
           Value: !Sub ${SystemName}-ec2-sg
@@ -110,6 +114,7 @@ Resources:
     Properties:
       ImageId: ami-0595d6e81396a9efb   # Ubuntu Server 22.04
       InstanceType: t2.micro
+      # InstanceType: m7i.xlarge
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
